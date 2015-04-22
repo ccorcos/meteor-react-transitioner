@@ -329,5 +329,30 @@ Transitioner =
         console.warn "Invalid scene", @state.scene
         false
 
+  stateMixin:
+    componentWillMount: ->
+      @stateSegues = {}
+      segues = @getStateSegues?()
+      if segues
+        _.map segues, (obj, name) =>
+          @stateSegues[name] = daisy.wait.latest (done, value) =>
+            if @state[name] isnt value
+              s = {}
+              s[name] = value
+              animateOut = obj.out.bind(this)
+              animateIn = obj.in.bind(this)
+              unless @state[name]
+                # dont animate out if theres nothing there
+                animateOut = null
+              daisy.chain(
+                animateOut
+                daisy.wrap => @setState(s)
+                animateIn
+                done
+              )
+
+    nextState: (key, value) ->
+      @stateSegues[key]?(_.noop, value)
+
   
 @Transitioner = Transitioner
