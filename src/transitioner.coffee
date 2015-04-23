@@ -249,8 +249,11 @@ Transitioner =
   doRouteSegue: (done, fromPath, toPath, fromContext, toContext) ->
     transition = @routeSegues[fromPath]?[toPath]?.action
     if transition
+      console.log fromPath, toPath
       @callLatest(done, transition, fromContext, toContext)
     else
+      console.log fromPath, '*'
+      console.log '*', toPath
       animateOut = @routeSegues[fromPath]?['*']?.out?.bind(fromContext)
       animateIn = @routeSegues['*']?[toPath]?.in?.bind(toContext)
       unless animateIn
@@ -266,8 +269,8 @@ Transitioner =
 
 
   componentWillAppear: (context, done) ->
-    @componentWillAppear = context
-    @doRouteSegue(done, null, context.displayName, null, context)
+    @currentComponent = context
+    @doRouteSegue(done, '*', context.displayName, null, context)
     
   componentWillEnter: (context, done) ->
     @nextComponent = context
