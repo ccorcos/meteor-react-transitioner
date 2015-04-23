@@ -1,5 +1,10 @@
 _ = lodash
 
+flip2 = (f) ->
+  (a,b) =>
+    f?(b,a)
+
+
 # A daisy function is defined as (done) -> done()
 daisy = {}
 
@@ -202,16 +207,28 @@ daisy.tests.queue = ->
 
 defineSegue = (segues, obj) ->
   if obj.from or obj.to
-    unless obj.from of segues
-      segues[obj.from] = {}
-    segues[obj.from][obj.to] = obj
+    if _.isArray(obj.from)
+      _.map obj.from, (from) ->
+        defineSegue(segues, R.assoc('from', from, obj))
+    else
+      unless obj.from of segues
+        segues[obj.from] = {}
+      if _.isArray(obj.to)
+        _.map obj.to, (to) ->
+          defineSegue(segues, R.assoc('to', to, obj))
+      else
+        segues[obj.from][obj.to] = obj
   else
-    unless '*' of segues
-      segues['*'] = {}
-    segues['*'][obj.name] = obj
-    unless obj.name of segues
-      segues[obj.name] = {}
-    segues[obj.name]['*'] = obj
+    if _.isArray(obj.name)
+      _.map obj.name, (name) ->
+        defineSegue(segues, R.assoc('name', name, obj))
+    else
+      unless '*' of segues
+        segues['*'] = {}
+      segues['*'][obj.name] = obj
+      unless obj.name of segues
+        segues[obj.name] = {}
+      segues[obj.name]['*'] = obj
 
 Transitioner =
 
@@ -234,17 +251,19 @@ Transitioner =
     if transition
       @callLatest(done, transition, fromContext, toContext)
     else
-      animateOut = @routeSegues[fromPath]?['*'].out?.bind(fromContext)
+      animateOut = @routeSegues[fromPath]?['*']?.out?.bind(fromContext)
       animateIn = @routeSegues['*']?[toPath]?.in?.bind(toContext)
       unless animateIn
         animateIn = daisy.wrap ->
-          $(toContext.getDOMNode()).css('opacity',1) 
-      daisy.chain(
-        animateOut
-        daisy.wrap => @setState({scene:name})
-        animateIn
-        done
-      )
+          $(toContext.getDOMNode()).css('opacity',1)
+      @callLatest(done, ((next) ->
+        daisy.chain(
+          animateOut
+          animateIn
+          next
+        )
+      ))
+
 
   componentWillAppear: (context, done) ->
     @componentWillAppear = context
@@ -267,12 +286,6 @@ Transitioner =
     toContext = @nextComponent
 
     @doRouteSegue(complete, fromPath, toPath, fromContext, toContext)
-
-  $refMixin:
-    $refs: (refs) ->
-      $ _.map refs, (ref) => @refs[ref].getDOMNode()
-    $ref: (ref) ->
-      $ @refs[ref].getDOMNode()
 
   # react
   routeMixin: (displayName) ->
@@ -313,7 +326,8 @@ Transitioner =
         )
 
       # we want to call nextScene(name) rather than nextScene(callback, name)
-      @nextScene = _.partial(nextScene, _.noop)
+      # @nextScene = _.partial(nextScene, _.noop)
+      @nextScene = flip2.bind(this)(nextScene)
 
       # a function that returns an array of segues
       for segue in @getSceneSegues?()
@@ -350,9 +364,28 @@ Transitioner =
                 animateIn
                 done
               )
+            else
+              done()
 
-    nextState: (key, value) ->
-      @stateSegues[key]?(_.noop, value)
+    nextState: (key, value, func) ->
+      @stateSegues[key]?(func, value)
 
-  
+  velocityMixin:
+    $refs: (refs) ->
+      getDOMNode = (ref) => @refs[ref]?.getDOMNode?()
+      truthy = (x) -> not (not x)
+      getRefs = R.compose(R.filter(truthy), R.map(getDOMNode))
+      $ getRefs(refs)
+    $ref: (ref) ->
+      @$refs([ref])
+    nthCallOf: (nth, func) ->
+      n = 0
+      () ->
+        n += 1
+        if n is nth then func()
+    animate: _.curry (refs, transition, options, done) ->
+      @$refs(refs).velocity(transition, R.merge({display:null,complete:done}, options))
+
+
+
 @Transitioner = Transitioner
