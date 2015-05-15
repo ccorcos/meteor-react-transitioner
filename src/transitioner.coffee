@@ -249,11 +249,11 @@ Transitioner =
   doRouteSegue: (done, fromPath, toPath, fromContext, toContext) ->
     transition = @routeSegues[fromPath]?[toPath]?.action
     if transition
-      console.log fromPath, toPath
+      # console.log fromPath, toPath
       @callLatest(done, transition, fromContext, toContext)
     else
-      console.log fromPath, '*'
-      console.log '*', toPath
+      # console.log fromPath, '*'
+      # console.log '*', toPath
       animateOut = @routeSegues[fromPath]?['*']?.out?.bind(fromContext)
       animateIn = @routeSegues['*']?[toPath]?.in?.bind(toContext)
       unless animateIn

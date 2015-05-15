@@ -77,3 +77,43 @@ animateRefs = (refFrom, refTo) ->
 
   $(from.node).velocity(animation)
 ```
+
+
+
+<!-- 
+
+
+# React Transitioner
+
+There are basically 3 types of transitions.
+
+## Page Transitions
+
+Suppose you are rendering pages to the `document.body` wrapped in a TransitionGroup. Then we can render `To` with opacity 0, compute the position changes, animate `From` to `To` then remove `From`. The description looks something like this:
+
+    transitioner = 
+      from: displayName or *
+      to: displayName or *
+      action: (From, To, done) ->
+        # given the context of the From and To components. 
+        # To has just been rendered to the body with opacity 0
+        # animate From off coordinated with To in. Async callback
+
+
+## Scene Transitions
+
+Suppose we are changing the scene within a component. Maybe there are multiple conditional steps in a signup form that you want to meticulously transition in between. We use `this.state.scene` to keep track of the current scene. You can call `this.nextScene` to iniate the transition. These are simple transitions with no overlap. Animate out, then animate in.
+
+    transitioner = 
+      from: 'scene1'
+      to: 'scene2'
+      before: (done) ->
+        # given this context
+        # animate scene1 out and call the callback
+        # scene2 will be inserted
+      after: (done) ->
+        # given this context
+        # animate scene2 in and call the callback
+
+
+ -->
